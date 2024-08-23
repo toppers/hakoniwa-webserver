@@ -3,11 +3,16 @@ import hakopy
 import hako_pdu
 import pdu_info
 import threading
-import copy
+import json
 import sys
 import time
 from server.core.hako_pdu_comm_interface import HakoPduCommInterface, HakoPduInfo
 
+
+class HakoPduCommInfo:
+    def __init__(self, name: str, info):
+        self.name = name
+        self.info = info
 
 def my_on_initialize(context):
     print("INFO: hako asset initialize")
@@ -18,24 +23,31 @@ def my_on_reset(context):
     return 0
 
 async def on_simulation_step_async(context):
-    print("INFO: on_simulation_step_async")
+    #print("INFO: on_simulation_step_async")
     server_instance = HakoPduServer.get_instance()
     if server_instance is None:
         raise RuntimeError("HakoPduServer has not been initialized")
     
-    #TODO get pdu data and publish
-    pdu_info = HakoPduInfo(pdu_type="example_type", pdu_name="example_name")
-    pdu_data_json = '{"key": "value"}'
-    print("Publishing PDU")
-    await server_instance.socket.publish_pdu(pdu_info, pdu_data_json)
+    for pdu_info in server_instance.pub_pdus:
+        pdu_data = server_instance.get_pdu_data(pdu_info.info['name'])
+        if pdu_data is not None:
+            # get pdu data and publish
+            pdu_info = HakoPduInfo(pdu_type=pdu_data['type'], pdu_name=pdu_data['name'])
+            pdu_data_json = pdu_data['data']
+            #print("Publishing PDU")
+            await server_instance.socket.publish_pdu(pdu_info, pdu_data_json)
     return 0
 
 def on_simulation_step(context):
-    print("INFO: on_simulation_step")
-    #TODO read pdu data
-
-    #TODO put pdu data on cache
+    #print("INFO: on_simulation_step")
     server_instance = HakoPduServer.get_instance()
+
+    for pdu_info in server_instance.pub_pdus:
+        pdu = server_instance.pdu_manager.get_pdu(pdu_info.name, pdu_info.info['channel_id'])
+        pdu_data = pdu.read()
+
+        #put pdu data on cache
+        server_instance.put_pdu_data(pdu_info.info['name'], pdu_info.info['type'], pdu_data)
     time.sleep(server_instance.slp_time_sec)
     return 0
 
@@ -45,7 +57,6 @@ my_callback = {
     'on_manual_timing_control': None,
     'on_reset': my_on_reset
 }
-
 
 class HakoPduServer:
     _instance = None
@@ -61,6 +72,7 @@ class HakoPduServer:
 
     def __init__(self, socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec):
         self.socket = socket
+        self.config_json = self._load_json(config_path)
         self.pdu_manager = hako_pdu.HakoPduManager('/usr/local/lib/hakoniwa/hako_binary/offset', config_path)
         self.delta_time_usec = delta_time_usec
         self.slp_time_sec = float(delta_time_usec) / 1000000.0
@@ -71,9 +83,37 @@ class HakoPduServer:
         self.pdu_buffers = {}
         self.lock = threading.Lock()
 
-    def put_pdu_data(self, name: str, data):
+        self.pub_pdus = []
+        for entry in self.config_json['robots']:
+            for writer in entry['shm_pdu_writers']:
+                info = HakoPduCommInfo(entry['name'], writer)
+                self.pub_pdus.append(info)
+            for reader in entry['shm_pdu_readers']:
+                info = HakoPduCommInfo(entry['name'], reader)
+                self.pub_pdus.append(info)
+
+    def _load_json(self, path):
+        try:
+            with open(path, 'r') as file:
+                return json.load(file)
+        except FileNotFoundError:
+            print(f"ERROR: File not found '{path}'")
+        except json.JSONDecodeError:
+            print(f"ERROR: Invalid Json fromat '{path}'")
+        except PermissionError:
+            print(f"ERROR: Permission denied '{path}'")
+        except Exception as e:
+            print(f"ERROR: {e}")
+        return None
+
+    def put_pdu_data(self, name: str, type_name: str, data):
+        msg = {
+            'name': name,
+            'type': type_name,
+            'data': data
+        }
         with self.lock:
-            self.pdu_buffers[name] = data
+            self.pdu_buffers[name] = msg
 
     def get_pdu_data(self, name: str):
         with self.lock:
