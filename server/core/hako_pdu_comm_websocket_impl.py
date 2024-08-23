@@ -2,22 +2,21 @@ import asyncio
 import websockets
 from server.core.hako_pdu_comm_interface import HakoPduCommInterface, HakoPduInfo
 
-class HakoWebSocketServer(HakoPduCommInterface):
-    _instance = None  # シングルトンインスタンス
+class HakoPduCommWebSocketImpl(HakoPduCommInterface):
+    _instance = None
 
     def __init__(self):
-        if HakoWebSocketServer._instance is not None:
+        if HakoPduCommWebSocketImpl._instance is not None:
             raise Exception("This class is a singleton!")
         self.connections = []
         self.advertised_pdus = []
-        HakoWebSocketServer._instance = self
+        HakoPduCommWebSocketImpl._instance = self
 
     @classmethod
     def get_instance(cls):
         if cls._instance is None:
-            cls._instance = HakoWebSocketServer()
+            cls._instance = HakoPduCommWebSocketImpl()
 
-            # 新しいイベントループを作成し、スレッドに設定
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         return cls._instance
@@ -49,8 +48,11 @@ class HakoWebSocketServer(HakoPduCommInterface):
         await self.broadcast(message_str)
 
     def run(self, host='localhost', port=8765):
+        loop = asyncio.new_event_loop()  # 新しいイベントループを作成
+        asyncio.set_event_loop(loop)  # 新しいイベントループをこのスレッドに設定
+        
         start_server = websockets.serve(self.handler, host, port)
         print(f"WebSocket server started on ws://{host}:{port}")
         
-        asyncio.get_event_loop().run_until_complete(start_server)
-        asyncio.get_event_loop().run_forever()
+        loop.run_until_complete(start_server)
+        loop.run_forever()

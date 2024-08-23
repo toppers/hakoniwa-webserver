@@ -1,10 +1,10 @@
 import asyncio
 from aiohttp import web
 import aiohttp_cors
-from core.hako_web_server import HakoWebSocketServer
+from server.core.hako_pdu_comm_websocket_impl import HakoPduCommWebSocketImpl
 
 # WebSocketサーバーのインスタンスを取得
-websocket_server = HakoWebSocketServer.get_instance()
+websocket_server = HakoPduCommWebSocketImpl.get_instance()
 
 async def start_handler(request):
     data = await request.json()
