@@ -3,9 +3,24 @@ import websockets
 from server.core.hako_pdu_comm_interface import HakoPduCommInterface, HakoPduInfo
 
 class HakoWebSocketServer(HakoPduCommInterface):
+    _instance = None  # シングルトンインスタンス
+
     def __init__(self):
+        if HakoWebSocketServer._instance is not None:
+            raise Exception("This class is a singleton!")
         self.connections = []
         self.advertised_pdus = []
+        HakoWebSocketServer._instance = self
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = HakoWebSocketServer()
+
+            # 新しいイベントループを作成し、スレッドに設定
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        return cls._instance
 
     async def handler(self, websocket, path):
         self.connections.append(websocket)
