@@ -35,7 +35,8 @@ def on_simulation_step(context):
     #TODO read pdu data
 
     #TODO put pdu data on cache
-    time.sleep(1)
+    server_instance = HakoPduServer.get_instance()
+    time.sleep(server_instance.slp_time_sec)
     return 0
 
 my_callback = {
@@ -62,6 +63,7 @@ class HakoPduServer:
         self.socket = socket
         self.pdu_manager = hako_pdu.HakoPduManager('/usr/local/lib/hakoniwa/hako_binary/offset', config_path)
         self.delta_time_usec = delta_time_usec
+        self.slp_time_sec = float(delta_time_usec) / 1000000.0
         ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
         if ret == False:
             print(f"ERROR: hako_asset_register() returns {ret}.")
@@ -92,9 +94,10 @@ def periodic_task():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
+    server_instance = HakoPduServer.get_instance()
     while True:
         loop.run_until_complete(on_simulation_step_async(None))
-        time.sleep(1)
+        time.sleep(server_instance.slp_time_sec)
 
 def start_periodic_thread():
     # 新しいスレッドを作成し、定期的に非同期タスクを実行
