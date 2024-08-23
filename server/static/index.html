@@ -9,7 +9,38 @@
     <h1>WebSocket and REST API Example</h1>
     <button id="startButton">START</button>
 
+    <h2>WebSocket Messages:</h2>
+    <div id="messages"></div>
+
     <script>
+        // WebSocket setup
+        const ws = new WebSocket('ws://localhost:8765');
+
+        // When WebSocket connection is established
+        ws.onopen = () => {
+            console.log('WebSocket connection established');
+        };
+
+        // When a message is received via WebSocket
+        ws.onmessage = (event) => {
+            const messageDiv = document.getElementById('messages');
+            messageDiv.textContent = ''; // Clear previous messages
+            const newMessage = document.createElement('p');
+            newMessage.textContent = event.data;
+            messageDiv.appendChild(newMessage);
+        };
+
+        // When the WebSocket connection is closed
+        ws.onclose = () => {
+            console.log('WebSocket connection closed');
+        };
+
+        // When there's an error with the WebSocket connection
+        ws.onerror = (error) => {
+            console.error('WebSocket Error:', error);
+        };
+
+        // REST API call on button click
         document.getElementById('startButton').addEventListener('click', () => {
             fetch('http://localhost:8080/api/start', {
                 method: 'POST',
