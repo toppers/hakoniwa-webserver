@@ -32,8 +32,18 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
             self.connections.remove(websocket)
 
     async def broadcast(self, message):
+        if not self.connections:
+            print("No active WebSocket connections to broadcast to.")
+            return
+        
         for conn in self.connections:
-            await conn.send(message)
+            try:
+                print(f"Sending message to connection: {conn}")
+                await conn.send(message)
+                print("Message sent successfully.")
+            except Exception as e:
+                print(f"Error sending message: {e}")
+
 
     async def send_to_clients(self, data):
         await self.broadcast(f"Server event: {data}")
@@ -46,6 +56,7 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         message_str = pdu_info.get_message_str(pdu_data_json)
         print(f"Broadcasting PDU: {message_str}")
         await self.broadcast(message_str)
+        print("PDU broadcast complete.")
 
     def run(self, host='localhost', port=8765):
         loop = asyncio.new_event_loop()  # 新しいイベントループを作成
