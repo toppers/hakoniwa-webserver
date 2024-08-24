@@ -5,7 +5,7 @@ class GzipStaticFileHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         script_dir = os.path.dirname(__file__)
         server_root = os.path.dirname(script_dir)
-        static_dir = os.path.join(server_root, 'static')
+        static_dir = os.path.join(server_root, 'static.webgl')
         os.chdir(static_dir)
         super().__init__(*args, directory='.', **kwargs)
 

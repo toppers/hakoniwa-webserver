@@ -15,6 +15,17 @@
           "pdu_size": 72,
           "write_cycle": 1,
           "method_type": "SHM"
+        },
+        {
+          "type": "hako_mavlink_msgs/HakoHilActuatorControls",
+          "org_name": "drone_motor",
+          "name": "DroneTransporter_drone_motor",
+          "class_name": "Hakoniwa.PluggableAsset.Communication.Pdu.Raw.RawPduReader",
+          "conv_class_name": "Hakoniwa.PluggableAsset.Communication.Pdu.Raw.RawPduReaderConverter",
+          "channel_id": 0,
+          "pdu_size": 112,
+          "write_cycle": 1,
+          "method_type": "SHM"
         }
       ],
       "shm_pdu_writers": []

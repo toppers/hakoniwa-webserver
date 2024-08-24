@@ -38,7 +38,7 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         
         # メッセージの長さを8バイトのバイナリに変換
         message_length = struct.pack('<Q', len(encoded_message))
-        print(f"Sending length: {len(encoded_message)}, binary: {message_length.hex()}")
+        #print(f"Sending length: {len(encoded_message)}, binary: {message_length.hex()}")
         # 先にサイズを送信し、その後にメッセージ本体を送信
         await conn.send(message_length)
         await conn.send(encoded_message)

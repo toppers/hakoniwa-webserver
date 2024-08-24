@@ -44,7 +44,7 @@ def on_simulation_step(context):
     for pdu_info in server_instance.pub_pdus:
         pdu = server_instance.pdu_manager.get_pdu(pdu_info.name, pdu_info.info['channel_id'])
         pdu_data = pdu.read()
-
+        #print(f"pdu_rea: name={pdu_info.name} channel_id={pdu_info.info['channel_id']}")
         #put pdu data on cache
         server_instance.put_pdu_data(pdu_info.info['name'], pdu_info.info['type'], pdu_data)
     #time.sleep(server_instance.slp_time_sec)
