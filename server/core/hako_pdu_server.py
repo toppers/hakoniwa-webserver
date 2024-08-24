@@ -1,10 +1,8 @@
 import asyncio
 import hakopy
 import hako_pdu
-import pdu_info
 import threading
 import json
-import sys
 import time
 from server.core.hako_pdu_comm_interface import HakoPduCommInterface, HakoPduInfo
 
@@ -23,6 +21,7 @@ def my_on_reset(context):
     return 0
 
 async def on_simulation_step_async(context):
+    on_simulation_step(context)
     #print("INFO: on_simulation_step_async")
     server_instance = HakoPduServer.get_instance()
     if server_instance is None:
@@ -48,7 +47,7 @@ def on_simulation_step(context):
 
         #put pdu data on cache
         server_instance.put_pdu_data(pdu_info.info['name'], pdu_info.info['type'], pdu_data)
-    time.sleep(server_instance.slp_time_sec)
+    #time.sleep(server_instance.slp_time_sec)
     return 0
 
 my_callback = {
@@ -76,10 +75,14 @@ class HakoPduServer:
         self.pdu_manager = hako_pdu.HakoPduManager('/usr/local/lib/hakoniwa/hako_binary/offset', config_path)
         self.delta_time_usec = delta_time_usec
         self.slp_time_sec = float(delta_time_usec) / 1000000.0
-        ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
+        #ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
+        #if ret == False:
+        #    print(f"ERROR: hako_asset_register() returns {ret}.")
+        #    return None
+        ret = hakopy.init_for_external()
         if ret == False:
-            print(f"ERROR: hako_asset_register() returns {ret}.")
-            return 1
+            print(f"ERROR: init_for_external() returns {ret}.")
+            return False
         self.pdu_buffers = {}
         self.lock = threading.Lock()
 
@@ -90,7 +93,7 @@ class HakoPduServer:
                 self.pub_pdus.append(info)
             for reader in entry['shm_pdu_readers']:
                 info = HakoPduCommInfo(entry['name'], reader)
-                self.pub_pdus.append(info)
+                self.pub_pdus.append(info)        
 
     def _load_json(self, path):
         try:
@@ -124,10 +127,10 @@ class HakoPduServer:
             else:
                 return None
 
-    async def start_service(self):
-        print("HakoPduService is starting...")
-        ret = hakopy.start()
-        print(f"INFO: hako_asset_start() returns {ret}")
+    #async def start_service(self):
+    #    print("HakoPduService is starting...")
+    #    ret = hakopy.start()
+    #    print(f"INFO: hako_asset_start() returns {ret}")
 
 
 def periodic_task():
@@ -150,4 +153,5 @@ def run_hako_pdu_service(socket: HakoPduCommInterface, asset_name: str, config_p
     # 定期実行スレッドを開始
     start_periodic_thread()
     
-    asyncio.run(service.start_service())  # 非同期関数を実行
+    #asyncio.run(service.start_service())  # 非同期関数を実行
+    return None

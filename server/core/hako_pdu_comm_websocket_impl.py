@@ -1,5 +1,6 @@
 import asyncio
 import websockets
+import struct
 from server.core.hako_pdu_comm_interface import HakoPduCommInterface, HakoPduInfo
 
 class HakoPduCommWebSocketImpl(HakoPduCommInterface):
@@ -27,9 +28,20 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
             async for message in websocket:
                 print(f"Received message: {message}")
         except websockets.exceptions.ConnectionClosedError as e:
-            print(f"Connection closed: {e}")
+            print(f"Connection closed with code {e.code}: {e.reason}")
         finally:
             self.connections.remove(websocket)
+
+    async def send_message(self, conn, message):
+        # メッセージをバイト列に変換
+        encoded_message = message.encode('utf-8')
+        
+        # メッセージの長さを8バイトのバイナリに変換
+        message_length = struct.pack('<Q', len(encoded_message))
+        print(f"Sending length: {len(encoded_message)}, binary: {message_length.hex()}")
+        # 先にサイズを送信し、その後にメッセージ本体を送信
+        await conn.send(message_length)
+        await conn.send(encoded_message)
 
     async def broadcast(self, message):
         if not self.connections:
@@ -39,7 +51,7 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         for conn in self.connections:
             try:
                 #print(f"Sending message to connection: {conn}")
-                await conn.send(message)
+                await self.send_message(conn, message)
                 #print("Message sent successfully.")
             except Exception as e:
                 print(f"Error sending message: {e}")
@@ -61,9 +73,9 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
     def run(self, host='localhost', port=8765):
         loop = asyncio.new_event_loop()  # 新しいイベントループを作成
         asyncio.set_event_loop(loop)  # 新しいイベントループをこのスレッドに設定
-        
+
         start_server = websockets.serve(self.handler, host, port)
         print(f"WebSocket server started on ws://{host}:{port}")
-        
+
         loop.run_until_complete(start_server)
         loop.run_forever()

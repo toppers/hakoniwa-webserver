@@ -22,12 +22,20 @@
         };
 
         // When a message is received via WebSocket
-        ws.onmessage = (event) => {
+        ws.onmessage = async (event) => {
             const messageDiv = document.getElementById('messages');
             messageDiv.textContent = ''; // Clear previous messages
-            const newMessage = document.createElement('p');
-            newMessage.textContent = event.data;
-            messageDiv.appendChild(newMessage);
+
+            const reader = new FileReader();
+            reader.onload = () => {
+                const dataView = new DataView(reader.result);
+                const messageLength = dataView.getBigUint64(0, false); // Read 8-byte message length
+                const messageText = new TextDecoder().decode(dataView.buffer.slice(8, 8 + Number(messageLength))); // Decode the message
+                const newMessage = document.createElement('p');
+                newMessage.textContent = messageText;
+                messageDiv.appendChild(newMessage);
+            };
+            reader.readAsArrayBuffer(event.data);
         };
 
         // When the WebSocket connection is closed

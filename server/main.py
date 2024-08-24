@@ -7,10 +7,12 @@ from server.core.hako_pdu_server import run_hako_pdu_service
 
 def main(asset_name, config_path, delta_time_usec):
     # HTTPサーバーを別スレッドで実行
+    print("INFO: start http server")
     http_thread = threading.Thread(target=run_http_server)
     http_thread.start()
 
     # WebSocketサーバーを別スレッドで実行
+    print("INFO: start websocket server")
     websocket_thread = threading.Thread(target=lambda: HakoPduCommWebSocketImpl.get_instance().run(host='localhost', port=8765))
     websocket_thread.start()
 
