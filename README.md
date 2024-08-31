@@ -83,7 +83,16 @@ hakoniwa-webserver
 
 端末A：
 ```
-cd hakoniwa-px4sim/hakoniwa
+cd hakoniwa-px4sim
+```
+```
+git pull
+```
+```
+git checkout develop
+```
+```
+cd hakoniwa
 ```
 
 ```
