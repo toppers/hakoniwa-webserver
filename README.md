@@ -127,6 +127,11 @@ WebSocket server started on ws://localhost:8765
 127.0.0.1 - - [31/Aug/2024 16:36:17] "GET /Build/static.webgl.wasm.gz HTTP/1.1" 304 -
 ```
 
+### デモ動画
+[Watch this video on YouTube](https://www.youtube.com/watch?v=TYMxLhjr330)
+
+
+
 ### 補足情報
 
  Webブラウザで実行されるドローンは、UnityのWebGLで実現しています。
