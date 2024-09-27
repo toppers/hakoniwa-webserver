@@ -72,7 +72,8 @@ class HakoPduServer:
     def __init__(self, socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec):
         self.socket = socket
         self.config_json = self._load_json(config_path)
-        self.pdu_manager = hako_pdu.HakoPduManager('/usr/local/lib/hakoniwa/hako_binary/offset', config_path)
+        hako_binary_path = os.getenv('HAKO_BINARY_PATH', '/usr/local/lib/hakoniwa/hako_binary/offset')
+        self.pdu_manager = hako_pdu.HakoPduManager(hako_binary_path, config_path)
         self.delta_time_usec = delta_time_usec
         self.slp_time_sec = float(delta_time_usec) / 1000000.0
         #ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
