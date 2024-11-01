@@ -2,7 +2,7 @@ import asyncio
 import websockets
 import struct
 from server.core.data_packet import DataPacket
-from server.core.hako_pdu_comm_interface import HakoPduCommInterface, HakoPduInfo
+from server.core.hako_pdu_comm_interface import HakoPduCommInterface
 
 class HakoPduCommWebSocketImpl(HakoPduCommInterface):
     _instance = None

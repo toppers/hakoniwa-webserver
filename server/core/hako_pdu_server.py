@@ -5,8 +5,8 @@ import threading
 import json
 import time
 import os
-from server.core.hako_pdu_comm_interface import HakoPduCommInterface, HakoPduInfo
-from data_packet import DataPacket
+from server.core.hako_pdu_comm_interface import HakoPduCommInterface
+from server.core.data_packet import DataPacket
 
 class HakoPduCommInfo:
     def __init__(self, name: str, info):
@@ -31,7 +31,7 @@ async def on_simulation_step_async(context):
         pdu_data = hakopy.pdu_read(pdu_info.name, pdu_info.info['channel_id'], pdu_info.info['pdu_size'])
         if pdu_data is not None:
             packet = DataPacket(pdu_info.name, pdu_info.info['channel_id'], pdu_data)
-            await server_instance.socket.publish_pdu(pdu_info, packet)
+            await server_instance.socket.publish_pdu(packet)
 
     for pdu_info in server_instance.sub_pdus:
         packet = server_instance.get_packet(pdu_info.name, pdu_info.info['channel_id'])
