@@ -32,7 +32,7 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         print(f"New connection established: {websocket.remote_address}")
         try:
             async for message in websocket:
-                print(f"Received message")
+                #print(f"Received message")
                 packet = DataPacket.decode(message)
                 self.buffer_callback(packet)
         except websockets.exceptions.ConnectionClosedError as e:

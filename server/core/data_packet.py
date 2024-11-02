@@ -44,7 +44,7 @@ class DataPacket:
         current_index += 4
 
         # ボディデータを取得
-        body_data = data[current_index:]
+        body_data = bytearray(data[current_index:])
 
         return DataPacket(robot_name=robot_name, channel_id=channel_id, body_data=body_data)
 
