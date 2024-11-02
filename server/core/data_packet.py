@@ -25,14 +25,14 @@ class DataPacket:
         current_index = 0
 
         # ヘッダーの長さを取得
-        header_length = struct.unpack_from('>i', data, current_index)[0]
+        header_length = struct.unpack_from('<i', data, current_index)[0]
         current_index += 4
 
         if len(data) < 4 + header_length:
             raise ValueError("指定されたヘッダー長が不正です。")
 
         # ロボット名の長さを取得
-        robot_name_length = struct.unpack_from('>i', data, current_index)[0]
+        robot_name_length = struct.unpack_from('<i', data, current_index)[0]
         current_index += 4
 
         # ロボット名を取得
@@ -40,7 +40,7 @@ class DataPacket:
         current_index += robot_name_length
 
         # チャネルIDを取得
-        channel_id = struct.unpack_from('>i', data, current_index)[0]
+        channel_id = struct.unpack_from('<i', data, current_index)[0]
         current_index += 4
 
         # ボディデータを取得
@@ -60,11 +60,11 @@ class DataPacket:
         current_index = 0
 
         # ヘッダー長
-        struct.pack_into('>i', data, current_index, header_length)
+        struct.pack_into('<i', data, current_index, header_length)
         current_index += 4
 
         # ロボット名の長さ
-        struct.pack_into('>i', data, current_index, robot_name_length)
+        struct.pack_into('<i', data, current_index, robot_name_length)
         current_index += 4
 
         # ロボット名
@@ -72,7 +72,7 @@ class DataPacket:
         current_index += robot_name_length
 
         # チャネルID
-        struct.pack_into('>i', data, current_index, self.get_channel_id())
+        struct.pack_into('<i', data, current_index, self.get_channel_id())
         current_index += 4
 
         # ボディデータ
@@ -80,3 +80,4 @@ class DataPacket:
             data[current_index:] = self.get_pdu_data()
 
         return bytes(data)
+

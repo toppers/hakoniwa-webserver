@@ -29,7 +29,9 @@ async def on_simulation_step_async(context):
 
     for pdu_info in server_instance.pub_pdus:
         pdu_data = hakopy.pdu_read(pdu_info.name, pdu_info.info['channel_id'], pdu_info.info['pdu_size'])
+        #print(f"pdu_data: start read")
         if pdu_data is not None:
+            #print(f"pdu_data: start publish: {pdu_info.name}")
             packet = DataPacket(pdu_info.name, pdu_info.info['channel_id'], pdu_data)
             await server_instance.socket.publish_pdu(packet)
 

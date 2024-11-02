@@ -29,6 +29,7 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
 
     async def handler(self, websocket, path):
         self.connections.append(websocket)
+        print(f"New connection established: {websocket.remote_address}")
         try:
             async for message in websocket:
                 print(f"Received message")
