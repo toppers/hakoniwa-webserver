@@ -51,7 +51,7 @@ URL: `http://localhost:8000`
 
 以下のサイトから、`static.webgl.zip` をダウンロードします。
 
-https://github.com/toppers/hakoniwa-unity-drone-model/releases/tag/v2.1.1
+https://github.com/toppers/hakoniwa-unity-drone-model/releases/tag/v2.2.0
 
 static.webgl.gz を解凍し、以下の構成で配置します。
 
