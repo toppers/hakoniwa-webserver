@@ -73,8 +73,13 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         if not self.connections:
             #print("No active WebSocket connections to broadcast to.")
             return
-        
+
         data = packet.encode()
+        
+        # 16進数でデータをダンプ
+        #hex_dump = " ".join(f"{byte:02x}" for byte in data)
+        #print(f"Data to send (hex): {hex_dump}")
+        
         for conn in self.connections:
             try:
                 await conn.send(data)
