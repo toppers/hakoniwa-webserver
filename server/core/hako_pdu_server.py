@@ -5,8 +5,8 @@ import threading
 import json
 import time
 import os
-from server.core.hako_pdu_comm_interface import HakoPduCommInterface, HakoPduInfo
-
+from server.core.hako_pdu_comm_interface import HakoPduCommInterface
+from server.core.data_packet import DataPacket
 
 class HakoPduCommInfo:
     def __init__(self, name: str, info):
@@ -22,38 +22,33 @@ def my_on_reset(context):
     return 0
 
 async def on_simulation_step_async(context):
-    on_simulation_step(context)
     #print("INFO: on_simulation_step_async")
     server_instance = HakoPduServer.get_instance()
     if server_instance is None:
         raise RuntimeError("HakoPduServer has not been initialized")
-    
+
     for pdu_info in server_instance.pub_pdus:
-        pdu_data = server_instance.get_pdu_data(pdu_info.info['name'])
+        pdu_data = hakopy.pdu_read(pdu_info.name, pdu_info.info['channel_id'], pdu_info.info['pdu_size'])
+        #print(f"pdu_data: start read")
         if pdu_data is not None:
-            # get pdu data and publish
-            pdu_info = HakoPduInfo(pdu_type=pdu_data['type'], pdu_name=pdu_data['name'])
-            pdu_data_json = pdu_data['data']
-            #print("Publishing PDU")
-            await server_instance.socket.publish_pdu(pdu_info, pdu_data_json)
+            #print(f"pdu_data: start publish: {pdu_info.name}")
+            packet = DataPacket(pdu_info.name, pdu_info.info['channel_id'], pdu_data)
+            await server_instance.socket.publish_pdu(packet)
+
+    for pdu_info in server_instance.sub_pdus:
+        packet = server_instance.get_packet(pdu_info.name, pdu_info.info['channel_id'])
+        if packet is not None:
+            pdu_data = packet.get_pdu_data()
+            ret = hakopy.pdu_write(pdu_info.name, pdu_info.info['channel_id'], pdu_data, pdu_info.info['pdu_size'])
+            if ret == False:
+                print(f"ERROR: can not write pdu data: robot_name={pdu_info.name} channel_id={pdu_info.info['channel_id']}")
+
     return 0
 
-def on_simulation_step(context):
-    #print("INFO: on_simulation_step")
-    server_instance = HakoPduServer.get_instance()
-
-    for pdu_info in server_instance.pub_pdus:
-        pdu = server_instance.pdu_manager.get_pdu(pdu_info.name, pdu_info.info['channel_id'])
-        pdu_data = pdu.read()
-        #print(f"pdu_rea: name={pdu_info.name} channel_id={pdu_info.info['channel_id']}")
-        #put pdu data on cache
-        server_instance.put_pdu_data(pdu_info.info['name'], pdu_info.info['type'], pdu_data)
-    #time.sleep(server_instance.slp_time_sec)
-    return 0
 
 my_callback = {
     'on_initialize': my_on_initialize,
-    'on_simulation_step': on_simulation_step,
+    'on_simulation_step': on_simulation_step_async,
     'on_manual_timing_control': None,
     'on_reset': my_on_reset
 }
@@ -73,14 +68,10 @@ class HakoPduServer:
     def __init__(self, socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec):
         self.socket = socket
         self.config_json = self._load_json(config_path)
-        hako_binary_path = os.getenv('HAKO_BINARY_PATH', '/usr/local/lib/hakoniwa/hako_binary/offset')
-        self.pdu_manager = hako_pdu.HakoPduManager(hako_binary_path, config_path)
         self.delta_time_usec = delta_time_usec
         self.slp_time_sec = float(delta_time_usec) / 1000000.0
-        #ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
-        #if ret == False:
-        #    print(f"ERROR: hako_asset_register() returns {ret}.")
-        #    return None
+        socket.setBuffer(self.put_pdu_data)
+
         ret = hakopy.init_for_external()
         if ret == False:
             print(f"ERROR: init_for_external() returns {ret}.")
@@ -89,10 +80,11 @@ class HakoPduServer:
         self.lock = threading.Lock()
 
         self.pub_pdus = []
+        self.sub_pdus = []
         for entry in self.config_json['robots']:
             for writer in entry['shm_pdu_writers']:
                 info = HakoPduCommInfo(entry['name'], writer)
-                self.pub_pdus.append(info)
+                self.sub_pdus.append(info)
             for reader in entry['shm_pdu_readers']:
                 info = HakoPduCommInfo(entry['name'], reader)
                 self.pub_pdus.append(info)        
@@ -111,29 +103,20 @@ class HakoPduServer:
             print(f"ERROR: {e}")
         return None
 
-    def put_pdu_data(self, name: str, type_name: str, data):
-        msg = {
-            'name': name,
-            'type': type_name,
-            'data': data
-        }
+    def put_pdu_data(self, packet: DataPacket):
+        key = (packet.robot_name, packet.channel_id)
         with self.lock:
-            self.pdu_buffers[name] = msg
+            self.pdu_buffers[key] = packet
 
-    def get_pdu_data(self, name: str):
+    def get_packet(self, name: str, channel_id: int) -> DataPacket:
+        key = (name, channel_id)
         with self.lock:
-            if name in self.pdu_buffers:
-                data = self.pdu_buffers[name]
-                self.pdu_buffers[name] = None
-                return data            
+            if key in self.pdu_buffers:
+                data = self.pdu_buffers[key]
+                self.pdu_buffers[key] = None  # データのリセット
+                return data
             else:
                 return None
-
-    #async def start_service(self):
-    #    print("HakoPduService is starting...")
-    #    ret = hakopy.start()
-    #    print(f"INFO: hako_asset_start() returns {ret}")
-
 
 def periodic_task():
     loop = asyncio.new_event_loop()
