@@ -87,7 +87,8 @@ class HakoPduServer:
                 self.sub_pdus.append(info)
             for reader in entry['shm_pdu_readers']:
                 info = HakoPduCommInfo(entry['name'], reader)
-                self.pub_pdus.append(info)        
+                print(f"pdu reader: {entry['name']}")
+                self.pub_pdus.append(info)
 
     def _load_json(self, path):
         try:
