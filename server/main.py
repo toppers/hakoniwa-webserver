@@ -13,7 +13,7 @@ def main(asset_name, config_path, delta_time_usec):
 
     # WebSocketサーバーを別スレッドで実行
     print("INFO: start websocket server")
-    websocket_thread = threading.Thread(target=lambda: HakoPduCommWebSocketImpl.get_instance().run(host='localhost', port=8765))
+    websocket_thread = threading.Thread(target=lambda: HakoPduCommWebSocketImpl.get_instance().run(host='0.0.0.0', port=8765))
     websocket_thread.start()
 
     # PDUサービスを別スレッドで実行

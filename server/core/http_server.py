@@ -33,7 +33,7 @@ class GzipStaticFileHandler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
 def run_http_server():
-    server_address = ('', 8000)
+    server_address = ('0.0.0.0', 8000)
     httpd = HTTPServer(server_address, GzipStaticFileHandler)
     print("Starting HTTP server on port 8000...")
     httpd.serve_forever()
