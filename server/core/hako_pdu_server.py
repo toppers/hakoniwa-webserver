@@ -76,6 +76,7 @@ class HakoPduServer:
         self.sub_pdus = []
         for entry in self.config_json['robots']:
             for writer in entry['shm_pdu_writers']:
+                print(f"pdu writer: {entry['name']}")
                 info = HakoPduCommInfo(entry['name'], writer)
                 self.sub_pdus.append(info)
             for reader in entry['shm_pdu_readers']:
