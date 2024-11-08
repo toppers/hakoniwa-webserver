@@ -28,8 +28,8 @@ async def on_simulation_step_async(context):
         raise RuntimeError("HakoPduServer has not been initialized")
 
     for pdu_info in server_instance.pub_pdus:
+        #print(f"pdu_data: start read {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']}")
         pdu_data = hakopy.pdu_read(pdu_info.name, pdu_info.info['channel_id'], pdu_info.info['pdu_size'])
-        #print(f"pdu_data: start read")
         if pdu_data is not None:
             #print(f"pdu_data: start publish: {pdu_info.name}")
             packet = DataPacket(pdu_info.name, pdu_info.info['channel_id'], pdu_data)
@@ -45,13 +45,6 @@ async def on_simulation_step_async(context):
 
     return 0
 
-
-my_callback = {
-    'on_initialize': my_on_initialize,
-    'on_simulation_step': on_simulation_step_async,
-    'on_manual_timing_control': None,
-    'on_reset': my_on_reset
-}
 
 class HakoPduServer:
     _instance = None

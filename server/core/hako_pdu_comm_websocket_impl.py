@@ -38,6 +38,7 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         except websockets.exceptions.ConnectionClosedError as e:
             print(f"Connection closed with code {e.code}: {e.reason}")
         finally:
+            print(f"Connection Removed: {websocket.remote_address}")
             self.connections.remove(websocket)
 
     async def send_message(self, conn, message):
