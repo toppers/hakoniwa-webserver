@@ -108,10 +108,11 @@ cd hakoniwa-px4sim/drone_api/sample
 python3.12 rc-custom.py ../../../hakoniwa-unity-drone-model/custom.json ./rc_config/ps4-control.json
 ```
 
-端末C：
+端末C：箱庭デジタルツインの場合は、`config/twin-custom.json` を指定して起動します。
 ```
 python3.12 server/main.py --asset_name WebServer --config_path config/custom.json --delta_time_usec 20000
 ```
+
 
 Webブラウザでアクセスすると、Webサーバ側で、以下のログが出力されます。
 
