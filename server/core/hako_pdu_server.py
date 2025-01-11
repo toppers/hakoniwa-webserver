@@ -39,6 +39,9 @@ async def on_simulation_step_async(context):
         packet = server_instance.get_packet(pdu_info.name, pdu_info.info['channel_id'])
         if packet is not None:
             pdu_data = packet.get_pdu_data()
+            #print(f"pdu_data: start write {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']}")
+            #if pdu_info.info['channel_id'] == 0:
+            #    print(f"pdu_data: write {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']} {pdu_data}")
             ret = hakopy.pdu_write(pdu_info.name, pdu_info.info['channel_id'], pdu_data, pdu_info.info['pdu_size'])
             if ret == False:
                 print(f"ERROR: can not write pdu data: robot_name={pdu_info.name} channel_id={pdu_info.info['channel_id']}")
@@ -103,6 +106,7 @@ class HakoPduServer:
 
     def put_pdu_data(self, packet: DataPacket):
         key = (packet.robot_name, packet.channel_id)
+        #print(f"put_pdu_data: {packet.robot_name} {packet.channel_id}")
         with self.lock:
             self.pdu_buffers[key] = packet
 
