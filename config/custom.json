@@ -4,7 +4,7 @@
       "name": "DroneTransporter",
       "rpc_pdu_readers": [],
       "rpc_pdu_writers": [],
-      "shm_pdu_readers": [
+      "shm_pdu_writers": [
         {
           "type": "geometry_msgs/Twist",
           "org_name": "drone_pos",
@@ -39,7 +39,7 @@
           "method_type": "SHM"
         }
       ],
-      "shm_pdu_writers": []
+      "shm_pdu_readers": []
     }
   ]
 }

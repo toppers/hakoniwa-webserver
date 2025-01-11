@@ -50,15 +50,15 @@ class HakoPduServer:
     _instance = None
 
     @classmethod
-    def get_instance(cls, socket=None, asset_name=None, config_path=None, delta_time_usec=None):
+    def get_instance(cls, socket=None, asset_name=None, config_path=None, delta_time_usec=None, is_conductor=False):
         if cls._instance is None:
             if None in (socket, asset_name, config_path, delta_time_usec):
                 raise ValueError("HakoPduServer instance not initialized. Missing arguments.")
-            cls._instance = HakoPduServer(socket, asset_name, config_path, delta_time_usec)
+            cls._instance = HakoPduServer(socket, asset_name, config_path, delta_time_usec, is_conductor)
 
         return cls._instance
 
-    def __init__(self, socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec):
+    def __init__(self, socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec, is_conductor=False):
         self.socket = socket
         self.config_json = self._load_json(config_path)
         self.delta_time_usec = delta_time_usec
@@ -79,6 +79,9 @@ class HakoPduServer:
                 print(f"pdu writer: {entry['name']}")
                 info = HakoPduCommInfo(entry['name'], writer)
                 self.sub_pdus.append(info)
+                if is_conductor:
+                    print(f"pdu create: {entry['name']} {writer['channel_id']} {writer['pdu_size']}")
+                    hakopy.pdu_create(entry['name'], writer['channel_id'], writer['pdu_size'])
             for reader in entry['shm_pdu_readers']:
                 info = HakoPduCommInfo(entry['name'], reader)
                 print(f"pdu reader: {entry['name']}")
@@ -127,8 +130,8 @@ def start_periodic_thread():
     thread = threading.Thread(target=periodic_task)
     thread.start()
 
-def run_hako_pdu_service(socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec: int):
-    service = HakoPduServer.get_instance(socket, asset_name, config_path, delta_time_usec)
+def run_hako_pdu_service(socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec: int, is_conductor: bool):
+    service = HakoPduServer.get_instance(socket, asset_name, config_path, delta_time_usec, is_conductor)
     
     # 定期実行スレッドを開始
     start_periodic_thread()
