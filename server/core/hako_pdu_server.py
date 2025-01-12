@@ -5,6 +5,10 @@ import threading
 import json
 import time
 import os
+import threading
+import struct
+
+
 from server.core.hako_pdu_comm_interface import HakoPduCommInterface
 from server.core.data_packet import DataPacket
 
@@ -20,6 +24,25 @@ def my_on_initialize(context):
 def my_on_reset(context):
     print("INFO: hako asset reset")
     return 0
+
+def my_on_simulation_step(context):
+    return 0
+
+# for debug
+def decode_twist(pdu_data):
+    """
+    Decode binary data into Twist structure.
+    Assumes 'linear' starts at byte offset 20 and is followed by 'angular'.
+    """
+    if len(pdu_data) < 48:  # Ensure enough bytes for linear (12 bytes) + angular (12 bytes)
+        raise ValueError("PDU data size is too small to decode Twist structure")
+
+    # Extract linear and angular components from the binary data
+    linear = struct.unpack_from('<ddd', pdu_data, 24)  # 3 floats for linear (x, y, z)
+    angular = struct.unpack_from('<ddd', pdu_data, 48)  # 3 floats for angular (x, y, z)
+
+    return {"linear": {"x": linear[0], "y": linear[1], "z": linear[2]},
+            "angular": {"x": angular[0], "y": angular[1], "z": angular[2]}}
 
 async def on_simulation_step_async(context):
     #print("INFO: on_simulation_step_async")
@@ -48,6 +71,16 @@ async def on_simulation_step_async(context):
 
     return 0
 
+my_callback = {
+    'on_initialize': my_on_initialize,
+    'on_simulation_step': my_on_simulation_step,
+    'on_manual_timing_control': None,
+    'on_reset': my_on_reset
+}
+
+def hako_asset_runner():
+    ret = hakopy.start()
+    print(f"INFO: hako_asset_start() returns {ret}")
 
 class HakoPduServer:
     _instance = None
@@ -68,7 +101,8 @@ class HakoPduServer:
         self.slp_time_sec = float(delta_time_usec) / 1000000.0
         socket.setBuffer(self.put_pdu_data)
 
-        ret = hakopy.init_for_external()
+        #ret = hakopy.init_for_external()
+        ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
         if ret == False:
             print(f"ERROR: init_for_external() returns {ret}.")
             return False
@@ -89,6 +123,11 @@ class HakoPduServer:
                 info = HakoPduCommInfo(entry['name'], reader)
                 print(f"pdu reader: {entry['name']}")
                 self.pub_pdus.append(info)
+
+        thread = threading.Thread(target=hako_asset_runner)
+        thread.daemon = True
+        thread.start()
+        time.sleep(1)
 
     def _load_json(self, path):
         try:
