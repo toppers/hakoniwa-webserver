@@ -10,7 +10,8 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
     def __init__(self):
         if HakoPduCommWebSocketImpl._instance is not None:
             raise Exception("This class is a singleton!")
-        self.connections = []
+        #self.connections = []
+        self.connections = {}  # コネクションとPDU情報のマッピング {websocket: (robot_name, channel_id)}
         self.advertised_pdus = []
         HakoPduCommWebSocketImpl._instance = self
         self.buffer_callback = None
@@ -28,18 +29,31 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         return cls._instance
 
     async def handler(self, websocket, path):
-        self.connections.append(websocket)
+        #self.connections.append(websocket)
         print(f"New connection established: {websocket.remote_address}")
         try:
             async for message in websocket:
                 #print(f"Received message {message}")
                 packet = DataPacket.decode(message)
-                self.buffer_callback(packet)
+                # Declare 系のメッセージかどうかをチェックしてログを表示
+                if packet.is_declare_pdu_for_read():
+                    print(f"DeclarePduForRead received from {packet.get_robot_name()}/{packet.get_channel_id()}")
+                    self.connections[websocket] = (packet.get_robot_name(), packet.get_channel_id())
+                elif packet.is_declare_pdu_for_write():
+                    print(f"DeclarePduForWrite received from {packet.get_robot_name()}/{packet.get_channel_id()}")
+                else:
+                    #print(f"Normal packet received from {packet.get_robot_name()}")                 
+                    self.buffer_callback(packet)
         except websockets.exceptions.ConnectionClosedError as e:
             print(f"Connection closed with code {e.code}: {e.reason}")
         finally:
-            print(f"Connection Removed: {websocket.remote_address}")
-            self.connections.remove(websocket)
+            self.unregister_connection(websocket)
+
+    def unregister_connection(self, websocket):
+        """コネクションを安全に削除"""
+        if websocket in self.connections:
+            del self.connections[websocket]
+            print(f"Connection unregistered: {websocket.remote_address}")
 
     async def send_message(self, conn, message):
         # メッセージをバイト列に変換
@@ -71,21 +85,19 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         await self.broadcast(f"Server event: {data}")
 
     async def publish_pdu(self, packet: DataPacket):
-        if not self.connections:
-            #print("No active WebSocket connections to broadcast to.")
-            return
+        """特定のPDU情報を持つクライアントにのみデータを送信"""
+        target_robot = packet.get_robot_name()
+        target_channel_id = packet.get_channel_id()
 
-        data = packet.encode()
-        
-        # 16進数でデータをダンプ
-        #hex_dump = " ".join(f"{byte:02x}" for byte in data)
-        #print(f"Data to send (hex): {hex_dump}")
-        
-        for conn in self.connections:
-            try:
-                await conn.send(data)
-            except Exception as e:
-                print(f"Error sending packet: {e}")
+        # 適切な接続を検索
+        for conn, (robot_name, channel_id) in self.connections.items():
+            if robot_name == target_robot and channel_id == target_channel_id:
+                try:
+                    await conn.send(packet.encode())
+                    #print(f"Sent packet to {robot_name}/{channel_id}")
+                except Exception as e:
+                    print(f"Error sending packet to {robot_name}/{channel_id}: {e}")
+                    self.unregister_connection(conn)  # クリーンアップ
 
     def run(self, host='localhost', port=8765):
         loop = asyncio.new_event_loop()  # 新しいイベントループを作成

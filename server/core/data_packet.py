@@ -3,6 +3,10 @@ from typing import Optional
 
 
 class DataPacket:
+    # 定数定義
+    DECLARE_PDU_FOR_READ = 0x52455044  # "REPD" を表すマジック番号
+    DECLARE_PDU_FOR_WRITE = 0x57505044  # "WPPD" を表すマジック番号
+
     def __init__(self, robot_name: str = '', channel_id: int = 0, body_data: Optional[bytes] = None):
         self.robot_name = robot_name
         self.channel_id = channel_id
@@ -81,3 +85,16 @@ class DataPacket:
 
         return bytes(data)
 
+    def is_declare_pdu_for_read(self) -> bool:
+        """DeclarePduForReadかどうかを判定 (リトルエンディアンで比較)"""
+        if len(self.body_data) < 4:
+            return False
+        magic_number = struct.unpack_from('<I', self.body_data, 0)[0]
+        return magic_number == self.DECLARE_PDU_FOR_READ
+
+    def is_declare_pdu_for_write(self) -> bool:
+        """DeclarePduForWriteかどうかを判定 (リトルエンディアンで比較)"""
+        if len(self.body_data) < 4:
+            return False
+        magic_number = struct.unpack_from('<I', self.body_data, 0)[0]
+        return magic_number == self.DECLARE_PDU_FOR_WRITE
