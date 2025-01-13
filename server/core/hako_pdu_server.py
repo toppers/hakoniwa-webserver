@@ -167,8 +167,18 @@ def periodic_task():
     
     server_instance = HakoPduServer.get_instance()
     while True:
+        start_time = time.perf_counter()  # 処理開始時刻を記録
         loop.run_until_complete(on_simulation_step_async(None))
-        time.sleep(server_instance.slp_time_sec)
+        end_time = time.perf_counter()  # 処理終了時刻を記録
+
+        # 経過時間をミリ秒単位で計算
+        elapsed_time_msec = (end_time - start_time) * 1000
+        #print(f"on_simulation_step_async elapsed time: {elapsed_time_msec:.2f} ms")
+        if elapsed_time_msec < server_instance.delta_time_usec / 1000:
+            time.sleep((server_instance.delta_time_usec / 1000 - elapsed_time_msec) / 1000)
+        else:
+            pass
+            #print(f"WARNING: on_simulation_step_async() took longer than delta_time_usec: {elapsed_time_msec:.2f} ms")
 
 def start_periodic_thread():
     # 新しいスレッドを作成し、定期的に非同期タスクを実行
