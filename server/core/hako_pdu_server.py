@@ -116,6 +116,8 @@ class HakoPduServer:
                 print(f"pdu writer: {entry['name']}")
                 info = HakoPduCommInfo(entry['name'], writer)
                 self.sub_pdus.append(info)
+                # for avatar publish
+                self.pub_pdus.append(info)
                 if is_conductor:
                     print(f"pdu create: {entry['name']} {writer['channel_id']} {writer['pdu_size']}")
                     hakopy.pdu_create(entry['name'], writer['channel_id'], writer['pdu_size'])
