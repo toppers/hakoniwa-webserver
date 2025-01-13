@@ -1,45 +1,53 @@
 {
   "robots": [
     {
-      "name": "DroneTransporter",
+      "name": "Drone1",
       "rpc_pdu_readers": [],
       "rpc_pdu_writers": [],
       "shm_pdu_writers": [
         {
           "type": "geometry_msgs/Twist",
           "org_name": "drone_pos",
-          "name": "DroneTransporter_drone_pos",
-          "class_name": "Hakoniwa.PluggableAsset.Communication.Pdu.Raw.RawPduReader",
-          "conv_class_name": "Hakoniwa.PluggableAsset.Communication.Pdu.Raw.RawPduReaderConverter",
+          "name": "Drone1_drone_pos",
           "channel_id": 1,
           "pdu_size": 72,
-          "write_cycle": 1,
-          "method_type": "SHM"
+          "write_cycle": 1
         },
         {
           "type": "hako_mavlink_msgs/HakoHilActuatorControls",
           "org_name": "drone_motor",
-          "name": "DroneTransporter_drone_motor",
-          "class_name": "Hakoniwa.PluggableAsset.Communication.Pdu.Raw.RawPduReader",
-          "conv_class_name": "Hakoniwa.PluggableAsset.Communication.Pdu.Raw.RawPduReaderConverter",
+          "name": "Drone1_drone_motor",
           "channel_id": 0,
           "pdu_size": 112,
-          "write_cycle": 1,
-          "method_type": "SHM"
+          "write_cycle": 1
+        }
+      ],
+      "shm_pdu_readers": []
+    },
+    {
+      "name": "Drone2",
+      "rpc_pdu_readers": [],
+      "rpc_pdu_writers": [],
+      "shm_pdu_writers": [
+        {
+          "type": "geometry_msgs/Twist",
+          "org_name": "drone_pos",
+          "name": "Drone2_drone_pos",
+          "channel_id": 1,
+          "pdu_size": 72,
+          "write_cycle": 1
         },
         {
-          "type": "hako_msgs/HakoBatteryStatus",
-          "org_name": "hako_battery",
-          "name": "DroneTransporter_hako_battery",
-          "class_name": "Hakoniwa.PluggableAsset.Communication.Pdu.Raw.RawPduReader",
-          "conv_class_name": "Hakoniwa.PluggableAsset.Communication.Pdu.Raw.RawPduReaderConverter",
-          "channel_id": 9,
-          "pdu_size": 56,
-          "write_cycle": 1,
-          "method_type": "SHM"
+          "type": "hako_mavlink_msgs/HakoHilActuatorControls",
+          "org_name": "drone_motor",
+          "name": "Drone2_drone_motor",
+          "channel_id": 0,
+          "pdu_size": 112,
+          "write_cycle": 1
         }
       ],
       "shm_pdu_readers": []
     }
+
   ]
 }
