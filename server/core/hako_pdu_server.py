@@ -63,7 +63,9 @@ async def on_simulation_step_async(context):
         if packet is not None:
             pdu_data = packet.get_pdu_data()
             #print(f"pdu_data: start write {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']}")
-            #if pdu_info.info['channel_id'] == 0:
+            #if pdu_info.info['channel_id'] == 1:
+            #    twist = decode_twist(pdu_data)
+            #    print(f"twist: {twist}")
             #    print(f"pdu_data: write {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']} {pdu_data}")
             ret = hakopy.pdu_write(pdu_info.name, pdu_info.info['channel_id'], pdu_data, pdu_info.info['pdu_size'])
             if ret == False:
@@ -86,23 +88,23 @@ class HakoPduServer:
     _instance = None
 
     @classmethod
-    def get_instance(cls, socket=None, asset_name=None, config_path=None, delta_time_usec=None, is_conductor=False):
+    def get_instance(cls, socket=None, asset_name=None, config_path=None, delta_time_usec=None):
         if cls._instance is None:
             if None in (socket, asset_name, config_path, delta_time_usec):
                 raise ValueError("HakoPduServer instance not initialized. Missing arguments.")
-            cls._instance = HakoPduServer(socket, asset_name, config_path, delta_time_usec, is_conductor)
+            cls._instance = HakoPduServer(socket, asset_name, config_path, delta_time_usec)
 
         return cls._instance
 
-    def __init__(self, socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec, is_conductor=False):
+    def __init__(self, socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec):
         self.socket = socket
         self.config_json = self._load_json(config_path)
         self.delta_time_usec = delta_time_usec
         self.slp_time_sec = float(delta_time_usec) / 1000000.0
         socket.setBuffer(self.put_pdu_data)
 
-        #ret = hakopy.init_for_external()
-        ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
+        ret = hakopy.init_for_external()
+        #ret = hakopy.asset_register(asset_name, config_path, my_callback, delta_time_usec, hakopy.HAKO_ASSET_MODEL_CONTROLLER)
         if ret == False:
             print(f"ERROR: init_for_external() returns {ret}.")
             return False
@@ -118,17 +120,16 @@ class HakoPduServer:
                 self.sub_pdus.append(info)
                 # for avatar publish
                 self.pub_pdus.append(info)
-                if is_conductor:
-                    print(f"pdu create: {entry['name']} {writer['channel_id']} {writer['pdu_size']}")
-                    hakopy.pdu_create(entry['name'], writer['channel_id'], writer['pdu_size'])
+                print(f"pdu create: {entry['name']} {writer['channel_id']} {writer['pdu_size']}")
+                hakopy.pdu_create(entry['name'], writer['channel_id'], writer['pdu_size'])
             for reader in entry['shm_pdu_readers']:
                 info = HakoPduCommInfo(entry['name'], reader)
                 print(f"pdu reader: {entry['name']}")
                 self.pub_pdus.append(info)
 
-        thread = threading.Thread(target=hako_asset_runner)
-        thread.daemon = True
-        thread.start()
+        #thread = threading.Thread(target=hako_asset_runner)
+        #thread.daemon = True
+        #thread.start()
         time.sleep(1)
 
     def _load_json(self, path):
@@ -177,16 +178,16 @@ def periodic_task():
         if elapsed_time_msec < server_instance.delta_time_usec / 1000:
             time.sleep((server_instance.delta_time_usec / 1000 - elapsed_time_msec) / 1000)
         else:
-            pass
-            #print(f"WARNING: on_simulation_step_async() took longer than delta_time_usec: {elapsed_time_msec:.2f} ms")
+            #pass
+            print(f"WARNING: on_simulation_step_async() took longer than delta_time_usec: {elapsed_time_msec:.2f} ms")
 
 def start_periodic_thread():
     # 新しいスレッドを作成し、定期的に非同期タスクを実行
     thread = threading.Thread(target=periodic_task)
     thread.start()
 
-def run_hako_pdu_service(socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec: int, is_conductor: bool):
-    service = HakoPduServer.get_instance(socket, asset_name, config_path, delta_time_usec, is_conductor)
+def run_hako_pdu_service(socket: HakoPduCommInterface, asset_name: str, config_path: str, delta_time_usec: int):
+    service = HakoPduServer.get_instance(socket, asset_name, config_path, delta_time_usec)
     
     # 定期実行スレッドを開始
     start_periodic_thread()
