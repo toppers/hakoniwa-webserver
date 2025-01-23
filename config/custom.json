@@ -1,6 +1,102 @@
 {
   "robots": [
+        {
+            "name": "Player1_head",
+            "rpc_pdu_readers": [],
+            "rpc_pdu_writers": [],
+            "shm_pdu_writers": [
+                {
+                    "type": "geometry_msgs/Twist",
+                    "org_name": "pos",
+                    "name": "Player1_head_pos",
+                    "channel_id": 0,
+                    "pdu_size": 72,
+                    "write_cycle": 1
+                }
+            ],
+            "shm_pdu_readers": []
+        },
+        {
+            "name": "Player1_left_hand",
+            "rpc_pdu_readers": [],
+            "rpc_pdu_writers": [],
+            "shm_pdu_writers": [
+                {
+                    "type": "geometry_msgs/Twist",
+                    "org_name": "pos",
+                    "name": "Player1_left_hand_pos",
+                    "channel_id": 0,
+                    "pdu_size": 72,
+                    "write_cycle": 1
+                }
+            ],
+            "shm_pdu_readers": []
+        },
+        {
+          "name": "Player1_right_hand",
+          "rpc_pdu_readers": [],
+          "rpc_pdu_writers": [],
+          "shm_pdu_writers": [
+              {
+                  "type": "geometry_msgs/Twist",
+                  "org_name": "pos",
+                  "name": "Player1_right_hand_pos",
+                  "channel_id": 0,
+                  "pdu_size": 72,
+                  "write_cycle": 1
+              }
+          ],
+          "shm_pdu_readers": []
+      },
+      {
+        "name": "Player2_head",
+        "rpc_pdu_readers": [],
+        "rpc_pdu_writers": [],
+        "shm_pdu_writers": [
+            {
+                "type": "geometry_msgs/Twist",
+                "org_name": "pos",
+                "name": "Player2_head_pos",
+                "channel_id": 0,
+                "pdu_size": 72,
+                "write_cycle": 1
+            }
+        ],
+        "shm_pdu_readers": []
+    },
     {
+        "name": "Player2_left_hand",
+        "rpc_pdu_readers": [],
+        "rpc_pdu_writers": [],
+        "shm_pdu_writers": [
+            {
+                "type": "geometry_msgs/Twist",
+                "org_name": "pos",
+                "name": "Player2_left_hand_pos",
+                "channel_id": 0,
+                "pdu_size": 72,
+                "write_cycle": 1
+            }
+        ],
+        "shm_pdu_readers": []
+    },
+    {
+        "name": "Player2_right_hand",
+        "rpc_pdu_readers": [],
+        "rpc_pdu_writers": [],
+        "shm_pdu_writers": [
+          {
+              "type": "geometry_msgs/Twist",
+              "org_name": "pos",
+              "name": "Player2_right_hand_pos",
+              "channel_id": 0,
+              "pdu_size": 72,
+              "write_cycle": 1
+          }
+        ],
+        "shm_pdu_readers": []
+      },
+      {
       "name": "Drone1",
       "rpc_pdu_readers": [],
       "rpc_pdu_writers": [],
