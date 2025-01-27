@@ -137,11 +137,24 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
                     self.unregister_connection(conn.websocket)
 
     def run(self, host='localhost', port=8765):
-        loop = asyncio.new_event_loop()  # 新しいイベントループを作成
-        asyncio.set_event_loop(loop)  # 新しいイベントループをこのスレッドに設定
+        print(f'run webserver')
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            print(f'set event loop on asyncio')
 
-        start_server = websockets.serve(self.handler, host, port)
-        print(f"WebSocket server started on ws://{host}:{port}")
+            async def start_server():
+                print(f"Starting WebSocket server...")
+                server = await websockets.serve(self.handler, host, port)
+                print(f"WebSocket server started on ws://{host}:{port}")
+                return server
 
-        loop.run_until_complete(start_server)
-        loop.run_forever()
+            # イベントループで非同期タスクとしてサーバーを起動
+            server = loop.run_until_complete(start_server())
+            loop.run_forever()
+        except Exception as e:
+            print(f"WebSocket server encountered an error: {e}")
+        finally:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.close()
+
