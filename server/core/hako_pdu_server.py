@@ -115,22 +115,27 @@ class HakoPduServer:
         self.sub_pdus = []
         for entry in self.config_json['robots']:
             for writer in entry['shm_pdu_writers']:
-                print(f"pdu writer: {entry['name']}")
                 info = HakoPduCommInfo(entry['name'], writer)
-                self.sub_pdus.append(info)
-                # for avatar publish
-                self.pub_pdus.append(info)
-                print(f"pdu create: {entry['name']} {writer['channel_id']} {writer['pdu_size']}")
-                hakopy.pdu_create(entry['name'], writer['channel_id'], writer['pdu_size'])
+                self.append_list('pub_pdus', self.pub_pdus, entry['name'], info)
             for reader in entry['shm_pdu_readers']:
                 info = HakoPduCommInfo(entry['name'], reader)
-                print(f"pdu reader: {entry['name']}")
-                self.pub_pdus.append(info)
+                self.append_list('sub_pdus', self.sub_pdus, entry['name'], info)
+                #add pub list for avatar read of quest3
+                self.append_list('pub_pdus', self.pub_pdus, entry['name'], info)
 
         #thread = threading.Thread(target=hako_asset_runner)
         #thread.daemon = True
         #thread.start()
         time.sleep(1)
+
+    def append_list(self, list_name, target_list, robot_name, new_info: HakoPduCommInfo):
+        for entry in target_list:
+            if entry.name == new_info.name and entry.info['channel_id'] == new_info.info['channel_id']:
+                return
+        print(f'append_list({list_name}) : {new_info.name} {new_info.info["channel_id"]} {new_info.info["org_name"]}')
+        target_list.append(new_info)
+        hakopy.pdu_create(robot_name, new_info.info['channel_id'], new_info.info['pdu_size'])
+        print(f"pdu create: {robot_name} {new_info.info['channel_id']} {new_info.info['pdu_size']}")
 
     def _load_json(self, path):
         try:
