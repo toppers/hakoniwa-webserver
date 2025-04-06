@@ -134,7 +134,7 @@ class HakoPduServer:
                 return
         print(f'append_list({list_name}) : {new_info.name} {new_info.info["channel_id"]} {new_info.info["org_name"]}')
         target_list.append(new_info)
-        hakopy.pdu_create(robot_name, new_info.info['channel_id'], new_info.info['pdu_size'])
+        #hakopy.pdu_create(robot_name, new_info.info['channel_id'], new_info.info['pdu_size'])
         print(f"pdu create: {robot_name} {new_info.info['channel_id']} {new_info.info['pdu_size']}")
 
     def _load_json(self, path):
@@ -172,6 +172,9 @@ def periodic_task():
     asyncio.set_event_loop(loop)
     
     server_instance = HakoPduServer.get_instance()
+
+    #input("ENTER for start...")
+
     while True:
         start_time = time.perf_counter()  # 処理開始時刻を記録
         loop.run_until_complete(on_simulation_step_async(None))
