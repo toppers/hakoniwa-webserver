@@ -67,7 +67,19 @@ async def on_simulation_step_async(context):
             #    twist = decode_twist(pdu_data)
             #    print(f"twist: {twist}")
             #    print(f"pdu_data: write {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']} {pdu_data}")
-            ret = hakopy.pdu_write(pdu_info.name, pdu_info.info['channel_id'], pdu_data, pdu_info.info['pdu_size'])
+
+            pdu_data_len = len(pdu_data)
+            # pdu_data size check
+            # if len(pdu_data) > pdu_info.info['pdu_size']:
+            #   pdu_data_len = pdu_info.info['pdu_size'] with warning
+            # if len(pdu_data) < pdu_info.info['pdu_size']:
+            #   good to write with no warning
+            if pdu_data_len > pdu_info.info['pdu_size']:
+                print(f"WARNING: pdu_data size mismatch: {pdu_info.name} channel_id={pdu_info.info['channel_id']} "
+                      f"expected={pdu_info.info['pdu_size']} actual={pdu_data_len}")
+                pdu_data = pdu_data[:pdu_info.info['pdu_size']]
+                pdu_data_len = pdu_info.info['pdu_size']
+            ret = hakopy.pdu_write(pdu_info.name, pdu_info.info['channel_id'], pdu_data, pdu_data_len)
             if ret == False:
                 print(f"ERROR: can not write pdu data: robot_name={pdu_info.name} channel_id={pdu_info.info['channel_id']}")
 
