@@ -6,6 +6,7 @@ class DataPacket:
     # 定数定義
     DECLARE_PDU_FOR_READ = 0x52455044  # "REPD" を表すマジック番号
     DECLARE_PDU_FOR_WRITE = 0x57505044  # "WPPD" を表すマジック番号
+    REQUEST_PDU_READ = 0x57505045
 
     def __init__(self, robot_name: str = '', channel_id: int = 0, body_data: Optional[bytes] = None):
         self.robot_name = robot_name
@@ -98,3 +99,10 @@ class DataPacket:
             return False
         magic_number = struct.unpack_from('<I', self.body_data, 0)[0]
         return magic_number == self.DECLARE_PDU_FOR_WRITE
+
+    def is_request_pdu_for_read(self) -> bool:
+        """RequestPduReadかどうかを判定 (リトルエンディアンで比較)"""
+        if len(self.body_data) < 4:
+            return False
+        magic_number = struct.unpack_from('<I', self.body_data, 0)[0]
+        return magic_number == self.REQUEST_PDU_READ

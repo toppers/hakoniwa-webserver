@@ -48,6 +48,7 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         self.advertised_pdus = []
         HakoPduCommWebSocketImpl._instance = self
         self.buffer_callback = None
+        self.loop = None
 
     def setBuffer(self, buffer_callback):
         self.buffer_callback = buffer_callback
@@ -56,9 +57,6 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
     def get_instance(cls):
         if cls._instance is None:
             cls._instance = HakoPduCommWebSocketImpl()
-
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
         return cls._instance
 
     async def handler(self, websocket, path):
@@ -66,17 +64,19 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         await self.connection_container.add(websocket) 
         try:
             async for message in websocket:
-                #print(f"Received message {message}")
                 packet = DataPacket.decode(message)
-                # Declare 系のメッセージかどうかをチェックしてログを表示
                 if packet.is_declare_pdu_for_read():
                     print(f"DeclarePduForRead received from {packet.get_robot_name()}/{packet.get_channel_id()}")
                     connection = await self.connection_container.get(websocket)
                     connection.add(packet.get_robot_name(), packet.get_channel_id())
                 elif packet.is_declare_pdu_for_write():
                     print(f"DeclarePduForWrite received from {packet.get_robot_name()}/{packet.get_channel_id()}")
+                elif packet.is_request_pdu_for_read():
+                    print(f"RequestPduRead received from {packet.get_robot_name()}/{packet.get_channel_id()}")
+                    from server.core.hako_pdu_server import HakoPduServer
+                    server = HakoPduServer.get_instance()
+                    server.enqueue_on_demand_request((websocket, packet.get_robot_name(), packet.get_channel_id()))
                 else:
-                    #print(f"Normal packet received from {packet.get_robot_name()}")                 
                     self.buffer_callback(packet)
         except websockets.exceptions.ConnectionClosedError as e:
             print(f"Connection closed with code {e.code}: {e.reason}")
@@ -117,6 +117,21 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
     async def send_to_clients(self, data):
         await self.broadcast(f"Server event: {data}")
 
+    async def _send_packet(self, websocket, packet: DataPacket):
+        try:
+            await websocket.send(packet.encode())
+        except websockets.exceptions.ConnectionClosedError:
+            print(f"Connection closed: {websocket.remote_address}")
+            await self.unregister_connection(websocket)
+        except Exception as e:
+            print(f"Error sending packet to {websocket.remote_address}: {e}")
+            await self.unregister_connection(websocket)
+
+    def send_packet_threadsafe(self, websocket, packet: DataPacket):
+        if self.loop is None:
+            raise RuntimeError("WebSocket server loop is not running")
+        asyncio.run_coroutine_threadsafe(self._send_packet(websocket, packet), self.loop)
+
     async def publish_pdu(self, packet: DataPacket):
         """特定のPDU情報を持つクライアントにのみデータを送信"""
         target_robot = packet.get_robot_name()
@@ -141,6 +156,7 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
+            self.loop = loop
             print(f'set event loop on asyncio')
 
             async def start_server():

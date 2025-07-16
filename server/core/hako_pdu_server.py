@@ -2,11 +2,13 @@ import asyncio
 import hakopy
 import hako_pdu
 import threading
+import queue
 import json
 import time
 import os
 import threading
 import struct
+from typing import Optional
 
 
 from server.core.hako_pdu_comm_interface import HakoPduCommInterface
@@ -49,6 +51,13 @@ async def on_simulation_step_async(context):
     server_instance = HakoPduServer.get_instance()
     if server_instance is None:
         raise RuntimeError("HakoPduServer has not been initialized")
+
+    while not server_instance.on_demand_requests.empty():
+        websocket, name, channel_id = server_instance.on_demand_requests.get()
+        pdu_data = server_instance.read_pdu(name, channel_id)
+        if pdu_data is not None:
+            packet = DataPacket(name, channel_id, pdu_data)
+            server_instance.socket.send_packet_threadsafe(websocket, packet)
 
     for pdu_info in server_instance.pub_pdus:
         #print(f"pdu_data: start read {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']}")
@@ -122,6 +131,7 @@ class HakoPduServer:
             return False
         self.pdu_buffers = {}
         self.lock = threading.Lock()
+        self.on_demand_requests = queue.Queue()
 
         self.pub_pdus = []
         self.sub_pdus = []
@@ -178,6 +188,24 @@ class HakoPduServer:
                 return data
             else:
                 return None
+
+    def get_pdu_size(self, name: str, channel_id: int) -> Optional[int]:
+        for entry in self.pub_pdus:
+            if entry.name == name and entry.info['channel_id'] == channel_id:
+                return entry.info['pdu_size']
+        for entry in self.sub_pdus:
+            if entry.name == name and entry.info['channel_id'] == channel_id:
+                return entry.info['pdu_size']
+        return None
+
+    def read_pdu(self, name: str, channel_id: int) -> Optional[bytes]:
+        size = self.get_pdu_size(name, channel_id)
+        if size is None:
+            return None
+        return hakopy.pdu_read(name, channel_id, size)
+
+    def enqueue_on_demand_request(self, request):
+        self.on_demand_requests.put(request)
 
 def periodic_task():
     loop = asyncio.new_event_loop()
