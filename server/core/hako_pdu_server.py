@@ -2,11 +2,13 @@ import asyncio
 import hakopy
 import hako_pdu
 import threading
+import queue
 import json
 import time
 import os
 import threading
 import struct
+from typing import Optional
 
 
 from server.core.hako_pdu_comm_interface import HakoPduCommInterface
@@ -49,6 +51,14 @@ async def on_simulation_step_async(context):
     server_instance = HakoPduServer.get_instance()
     if server_instance is None:
         raise RuntimeError("HakoPduServer has not been initialized")
+
+    while not server_instance.on_demand_requests.empty():
+        websocket, name, channel_id = server_instance.on_demand_requests.get()
+        pdu_data = server_instance.read_pdu(name, channel_id)
+        if pdu_data is not None:
+            packet = DataPacket(name, channel_id, pdu_data)
+            server_instance.socket.send_packet_threadsafe(websocket, packet)
+            print(f"INFO: on_demand_requests: sent {name} channel_id={channel_id} data size={len(pdu_data)}")
 
     for pdu_info in server_instance.pub_pdus:
         #print(f"pdu_data: start read {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']}")
@@ -122,6 +132,7 @@ class HakoPduServer:
             return False
         self.pdu_buffers = {}
         self.lock = threading.Lock()
+        self.on_demand_requests = queue.Queue()
 
         self.pub_pdus = []
         self.sub_pdus = []
@@ -179,27 +190,45 @@ class HakoPduServer:
             else:
                 return None
 
+    def get_pdu_size(self, name: str, channel_id: int) -> Optional[int]:
+        for entry in self.pub_pdus:
+            if entry.name == name and entry.info['channel_id'] == channel_id:
+                return entry.info['pdu_size']
+        for entry in self.sub_pdus:
+            if entry.name == name and entry.info['channel_id'] == channel_id:
+                return entry.info['pdu_size']
+        return None
+
+    def read_pdu(self, name: str, channel_id: int) -> Optional[bytes]:
+        size = self.get_pdu_size(name, channel_id)
+        if size is None:
+            return None
+        return hakopy.pdu_read(name, channel_id, size)
+
+    def enqueue_on_demand_request(self, request):
+        self.on_demand_requests.put(request)
+
 def periodic_task():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     server_instance = HakoPduServer.get_instance()
+    loop = server_instance.socket.loop  # WebSocket 側の loop を取得
 
     #input("ENTER for start...")
 
-    while True:
-        start_time = time.perf_counter()  # 処理開始時刻を記録
-        loop.run_until_complete(on_simulation_step_async(None))
-        end_time = time.perf_counter()  # 処理終了時刻を記録
+    async def periodic_loop():
+        while True:
+            start_time = time.perf_counter()
+            await on_simulation_step_async(None)
+            end_time = time.perf_counter()
 
-        # 経過時間をミリ秒単位で計算
-        elapsed_time_msec = (end_time - start_time) * 1000
-        #print(f"on_simulation_step_async elapsed time: {elapsed_time_msec:.2f} ms")
-        if elapsed_time_msec < server_instance.delta_time_usec / 1000:
-            time.sleep((server_instance.delta_time_usec / 1000 - elapsed_time_msec) / 1000)
-        else:
-            #pass
-            print(f"WARNING: on_simulation_step_async() took longer than delta_time_usec: {elapsed_time_msec:.2f} ms")
+            elapsed_time_msec = (end_time - start_time) * 1000
+            sleep_time = (server_instance.delta_time_usec / 1000 - elapsed_time_msec) / 1000
+            if sleep_time > 0:
+                await asyncio.sleep(sleep_time)
+            else:
+                print(f"WARNING: on_simulation_step_async() took too long: {elapsed_time_msec:.2f} ms")
+
+    # WebSocket のループにタスクとして登録（安全に）
+    loop.call_soon_threadsafe(lambda: asyncio.create_task(periodic_loop()))
 
 def start_periodic_thread():
     # 新しいスレッドを作成し、定期的に非同期タスクを実行

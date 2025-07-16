@@ -1,5 +1,6 @@
 import hakopy
 
+
 def main(delta_time_usec, max_delay_time_usec):
     while True:
         hakopy.conductor_start(delta_time_usec, max_delay_time_usec)
