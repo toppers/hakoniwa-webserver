@@ -58,6 +58,7 @@ async def on_simulation_step_async(context):
         if pdu_data is not None:
             packet = DataPacket(name, channel_id, pdu_data)
             server_instance.socket.send_packet_threadsafe(websocket, packet)
+            print(f"INFO: on_demand_requests: sent {name} channel_id={channel_id} data size={len(pdu_data)}")
 
     for pdu_info in server_instance.pub_pdus:
         #print(f"pdu_data: start read {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']}")
@@ -208,26 +209,26 @@ class HakoPduServer:
         self.on_demand_requests.put(request)
 
 def periodic_task():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
     server_instance = HakoPduServer.get_instance()
+    loop = server_instance.socket.loop  # WebSocket 側の loop を取得
 
     #input("ENTER for start...")
 
-    while True:
-        start_time = time.perf_counter()  # 処理開始時刻を記録
-        loop.run_until_complete(on_simulation_step_async(None))
-        end_time = time.perf_counter()  # 処理終了時刻を記録
+    async def periodic_loop():
+        while True:
+            start_time = time.perf_counter()
+            await on_simulation_step_async(None)
+            end_time = time.perf_counter()
 
-        # 経過時間をミリ秒単位で計算
-        elapsed_time_msec = (end_time - start_time) * 1000
-        #print(f"on_simulation_step_async elapsed time: {elapsed_time_msec:.2f} ms")
-        if elapsed_time_msec < server_instance.delta_time_usec / 1000:
-            time.sleep((server_instance.delta_time_usec / 1000 - elapsed_time_msec) / 1000)
-        else:
-            #pass
-            print(f"WARNING: on_simulation_step_async() took longer than delta_time_usec: {elapsed_time_msec:.2f} ms")
+            elapsed_time_msec = (end_time - start_time) * 1000
+            sleep_time = (server_instance.delta_time_usec / 1000 - elapsed_time_msec) / 1000
+            if sleep_time > 0:
+                await asyncio.sleep(sleep_time)
+            else:
+                print(f"WARNING: on_simulation_step_async() took too long: {elapsed_time_msec:.2f} ms")
+
+    # WebSocket のループにタスクとして登録（安全に）
+    loop.call_soon_threadsafe(lambda: asyncio.create_task(periodic_loop()))
 
 def start_periodic_thread():
     # 新しいスレッドを作成し、定期的に非同期タスクを実行
