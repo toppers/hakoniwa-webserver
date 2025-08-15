@@ -60,6 +60,8 @@ async def on_simulation_step_async(context):
             print(f"INFO: on_demand_requests: sent {name} channel_id={channel_id} data size={len(pdu_data)}")
 
     for pdu_info in server_instance.pub_pdus:
+        if server_instance.socket.is_exist_subscriber(pdu_info.name, pdu_info.info['channel_id']) == False:
+            continue
         #print(f"pdu_data: start read {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']}")
         pdu_data = hakopy.pdu_read(pdu_info.name, pdu_info.info['channel_id'], pdu_info.info['pdu_size'])
         if pdu_data is not None:
@@ -88,6 +90,7 @@ async def on_simulation_step_async(context):
                       f"expected={pdu_info.info['pdu_size']} actual={pdu_data_len}")
                 pdu_data = pdu_data[:pdu_info.info['pdu_size']]
                 pdu_data_len = pdu_info.info['pdu_size']
+            #print(f"pdu_data: write {pdu_info.name} channel: {pdu_info.info['channel_id']} {pdu_info.info['pdu_size']} {pdu_data}")
             ret = hakopy.pdu_write(pdu_info.name, pdu_info.info['channel_id'], pdu_data, pdu_data_len)
             if ret == False:
                 print(f"ERROR: can not write pdu data: robot_name={pdu_info.name} channel_id={pdu_info.info['channel_id']}")
@@ -101,9 +104,6 @@ my_callback = {
     'on_reset': my_on_reset
 }
 
-def hako_asset_runner():
-    ret = hakopy.start()
-    print(f"INFO: hako_asset_start() returns {ret}")
 
 class HakoPduServer:
     _instance = None
@@ -145,9 +145,6 @@ class HakoPduServer:
                 #add pub list for avatar read of quest3
                 self.append_list('pub_pdus', self.pub_pdus, entry['name'], info)
 
-        #thread = threading.Thread(target=hako_asset_runner)
-        #thread.daemon = True
-        #thread.start()
         time.sleep(1)
 
     def append_list(self, list_name, target_list, robot_name, new_info: HakoPduCommInfo):
@@ -215,7 +212,7 @@ def periodic_task():
 
     async def periodic_loop():
         while True:
-            start_time = time.perf_counter()
+            start_time = time.perf_counter() #sec/float
             await on_simulation_step_async(None)
             end_time = time.perf_counter()
 
@@ -224,6 +221,7 @@ def periodic_task():
             if sleep_time > 0:
                 await asyncio.sleep(sleep_time)
             else:
+                #pass
                 print(f"WARNING: on_simulation_step_async() took too long: {elapsed_time_msec:.2f} ms")
 
     # WebSocket のループにタスクとして登録（安全に）

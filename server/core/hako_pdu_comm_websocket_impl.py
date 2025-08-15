@@ -132,6 +132,14 @@ class HakoPduCommWebSocketImpl(HakoPduCommInterface):
             raise RuntimeError("WebSocket server loop is not running")
         asyncio.run_coroutine_threadsafe(self._send_packet(websocket, packet), self.loop)
 
+    def is_exist_subscriber(self, robot_name, channel_id):
+        """特定のロボットとチャンネルIDに対するサブスクライバーが存在するか確認"""
+        connections_snapshot = list(self.connection_container.connections.values())
+        for conn in connections_snapshot:
+            if conn.is_exist(robot_name, channel_id):
+                return True
+        return False
+
     async def publish_pdu(self, packet: DataPacket):
         """特定のPDU情報を持つクライアントにのみデータを送信"""
         target_robot = packet.get_robot_name()
