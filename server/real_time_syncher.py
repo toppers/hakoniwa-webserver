@@ -2,7 +2,6 @@ import hakopy
 import sys
 import time
 import os
-import hako_pdu
 
 # Declare the global variable for delta_time_usec
 delta_time_usec = 0

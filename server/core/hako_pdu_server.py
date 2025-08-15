@@ -1,6 +1,5 @@
 import asyncio
 import hakopy
-import hako_pdu
 import threading
 import queue
 import json
