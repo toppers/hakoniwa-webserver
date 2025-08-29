@@ -36,4 +36,4 @@ def run_rest_api_server():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     app = loop.run_until_complete(init_app())
-    web.run_app(app, host='localhost', port=8080)
+    web.run_app(app, host='localhost', port=8090)
